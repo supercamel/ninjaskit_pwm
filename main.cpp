@@ -1,42 +1,42 @@
-#include "ninjaskit/ninjaskit.h"
+#include "ninjaskit/ninjaskit.h" 
+ 
+using namespace etk; 
+ 
 
-#include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/timer.h>
+/*
+ * This PWM example uses Pulse1 to blink a digital pin with hardware timers. 
+ *
+ * It's a hardware accelerated blinky!
+ *
+ */
 
-#include "pwm.h"
 
-int main(void)
-{
+int main(void) 
+{ 
+    //initialises the clock and peripherals 
     clock_setup();
     
-    Serial1.begin(57600);
+    //start pulse generator using millisecond timer
+    //pulse period is the frequency at which pulses occur
+    //pulse period is 1,000 milliseconds ( 1 second )
+    //so we'll get one pulse per second from Pulse1
+    Pulse1.begin(1'000, Pulse1.MILLI_PRECISION); 
     
-    const int PRESCALE = 64;
-    const int PWM_PERIOD = 20000;
-    const int SERVO_NULL = 1500;
+    //Pulse1 has four channels which must be explicitly enabled
+    //enable channel 0 output
+    //channel 0 happens to be pin PA0 - check ninjaskit/pwm.h for all the PWM pin mappings
+    Pulse1.enable_output(0); 
     
-    auto SERVO_CH1 = TIM_OC2;
+    //all channels have the same pulse period but their pulse widths must be set individually
+    //so now we set pulse width of channel 0 to 500 milliseconds
+    //units are milliseconds, because we've configured Pulse1 to use a millisecond timer
+    Pulse1.set_pulse_width(0, 500); 
     
-    pwm_init_timer(&RCC_APB1ENR, RCC_APB1ENR_TIM2EN, TIM2, PRESCALE, PWM_PERIOD);
-
-     /* init output of channel2 of timer2 */
-     pwm_init_output_channel(TIM2, SERVO_CH1, &RCC_APB2ENR, RCC_APB2ENR_IOPAEN, GPIOA, GPIO_TIM2_CH2);
-
-     pwm_set_pulse_width(TIM2, SERVO_CH1, SERVO_NULL);
-
-     /* start timer1 */
-     pwm_start_timer(TIM2);
+    //now actually start the timer 
+    Pulse1.start_timer();
     
-    auto inp = gpio_pin({PA, 7});
-    configure_as_input(inp);
+    //PA0 will now turn ON for 500ms and OFF for 500ms - forever! 
+    //while the processor does nothing
+    while(true);
     
-    while(true)
-    {
-
-    	
-    	Serial1.print("Diff: ", pulse_in(inp), "\r\n");
-    }
 }
-
-
